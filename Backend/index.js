@@ -1,27 +1,50 @@
+const mongoose = require('mongoose');
 const express = require('express');
-const dotenv = require('dotenv');
-const cors = require('cors');
-const connectDB = require('./config/db');
-
-dotenv.config();
 const app = express();
-
-// Middleware
+const dotenv = require('dotenv')
 app.use(express.json());
-app.use(cors());
+dotenv.config();
+mongoose.connect(process.env.MONGO_URI)
+.then(()=>console.log('db connected successfully'))
+.catch((err)=>console.log('db not connected',err))
 
-// Connect to Database
-connectDB();
 
-// Routes
-const userRoutes = require('./Routers/userRoute');
-app.use('/users', userRoutes); // Mount user routes
+//schema
+const userSchema = mongoose.Schema({
+    name:{
+        type:String,
+        required:true
+    },
+    email:{
+        type:String,
+        required:true
+    },
+    password:{
+        type:String,
+        required:true
+    },
+})
+//model
+const userModel = mongoose.model('userModel',userSchema);
 
-// Handle undefined routes
-app.use((req, res) => {
-    res.status(404).json({ message: 'Route not found' });
+//api post
+app.post('/user/post',async(req,res)=>{
+    try{
+const {name,email,password}=req.body;
+if(!name || !email || !password){
+    return res.status(400).json({message:'Please fill all the fields'});
+}
+const newUser = new userModel({
+    name,email,password
 });
+await newUser.save();
+res.status(201).json({message:'User data save succesfully ',userdata:newUser})
+    }
+    catch(err){
+        res.status(201).json({message:'Internal Error',Error:err})
+    }
+})
 
-// Start Server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(3000,()=>{
+    console.log('server is ruuning on port 3000');
+})
